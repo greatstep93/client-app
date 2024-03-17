@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,8 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.DefaultUriBuilderFactory.EncodingMode;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
 @Component
 @RequiredArgsConstructor
@@ -47,9 +50,15 @@ public class WebClientHelper {
     }
 
     public Builder getBuilder() {
+        ConnectionProvider connectionProvider = ConnectionProvider.builder("myConnectionPool")
+                .maxConnections(100_000)
+                .pendingAcquireMaxCount(100_000)
+                .build();
+        ReactorClientHttpConnector clientHttpConnector = new ReactorClientHttpConnector(
+                HttpClient.create(connectionProvider));
         return WebClient.builder()
+                .clientConnector(clientHttpConnector)
                 .codecs(clientDefaultCodecsConfigurer -> {
-
                     clientDefaultCodecsConfigurer.defaultCodecs()
                             .jackson2JsonEncoder(new Jackson2JsonEncoder(objectMapper, MediaType.APPLICATION_JSON));
                     clientDefaultCodecsConfigurer.defaultCodecs().maxInMemorySize(500 * 1024);

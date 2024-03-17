@@ -2,5 +2,5 @@ spring:
   application:
     name: client-app
 
-count: 5000
+count: 10000
 virtual: true
