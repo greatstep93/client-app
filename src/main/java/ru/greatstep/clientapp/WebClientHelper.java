@@ -5,11 +5,15 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.TEXT_HTML;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -55,7 +59,10 @@ public class WebClientHelper {
                 .pendingAcquireMaxCount(100_000)
                 .build();
         ReactorClientHttpConnector clientHttpConnector = new ReactorClientHttpConnector(
-                HttpClient.create(connectionProvider));
+                HttpClient.create(connectionProvider)
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1_000_000)
+                        .doOnConnected(c -> c.addHandlerLast(new ReadTimeoutHandler(1_000_000, TimeUnit.MILLISECONDS))
+                                .addHandlerLast(new WriteTimeoutHandler(1_000_000, TimeUnit.MILLISECONDS))));
         return WebClient.builder()
                 .clientConnector(clientHttpConnector)
                 .codecs(clientDefaultCodecsConfigurer -> {
